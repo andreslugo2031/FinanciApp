@@ -144,7 +144,7 @@ if not df.empty:
             
             # Link de WhatsApp
             mensaje = f"¡Hola Tito! 👋 Vi esto en tu catálogo y me interesa:\n\n*Producto:* {p_nombre}\n*Precio:* ${p_precio}"
-            link_ws = f"https://wa.me/{58412877291}?text={urllib.parse.quote(Hola tito estoy interesado/a en este producto)}"
+            link_ws = f"https://wa.me/{58412877291}?text={urllib.parse.quote(mensaje)}"
             
             st.markdown(f'<a href="{link_ws}" target="_blank" class="ws-button">Consultar Ahora</a>', unsafe_allow_html=True)
             
