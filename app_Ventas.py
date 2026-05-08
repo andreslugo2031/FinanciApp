@@ -6,89 +6,79 @@ import urllib.parse
 # Configuración de página
 st.set_page_config(page_title="Catálogo Tito - Premium", layout="wide")
 
-# --- DISEÑO UI MODERNO ---
+# --- DISEÑO UI MODERNO V2 ---
 st.markdown("""
     <style>
-    /* Fondo general */
     .stApp {
-        background-color: #f8f9fa;
+        background-color: #f1f5f9;
     }
     
-    /* Títulos */
     h1 {
         color: #1e293b !important;
         font-family: 'Inter', sans-serif;
         font-weight: 800 !important;
+        text-align: center;
+        margin-bottom: 30px;
     }
 
-    /* Card de Producto */
     .product-card {
         background-color: white;
-        border-radius: 15px;
+        border-radius: 20px;
         padding: 20px;
         margin-bottom: 25px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         border: 1px solid #e2e8f0;
         text-align: center;
-        min-height: 520px;
+        min-height: 550px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
     }
 
-    /* Efecto al pasar el mouse sobre la tarjeta */
     .product-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        border-color: #3b82f6;
+        transform: translateY(-12px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+        border-color: #2563eb;
     }
 
-    /* Estilo de la imagen */
-    .stImage img {
-        border-radius: 10px;
-    }
-
-    /* Precio con relieve */
     .price-tag {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: #2563eb;
-        margin: 10px 0;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+        font-size: 1.9rem;
+        font-weight: 800;
+        color: #1e40af;
+        margin: 15px 0;
     }
 
-    /* Botón de WhatsApp Estilo Moderno */
     .ws-button {
         background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
         color: white !important;
-        padding: 12px 20px;
-        border-radius: 10px;
+        padding: 14px 25px;
+        border-radius: 50px;
         text-decoration: none;
         font-weight: bold;
-        display: block;
-        box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        display: inline-block;
+        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
         transition: all 0.3s ease;
-        border: none;
-        margin-top: 15px;
+        width: 90%;
+        margin: 0 auto;
     }
 
     .ws-button:hover {
-        box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
-        transform: scale(1.02);
+        box-shadow: 0 8px 20px rgba(37, 211, 102, 0.6);
+        transform: scale(1.05);
         color: white !important;
     }
 
-    /* Buscador */
-    .stTextInput input {
-        border-radius: 10px !important;
-        border: 1px solid #cbd5e1 !important;
+    /* Estilo para el buscador */
+    div[data-baseweb="input"] {
+        border-radius: 15px !important;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
     </style>
     """, unsafe_allow_html=True)
 
-# CONFIGURACIÓN
-TELEFONO = "585077657563"
+# CONFIGURACIÓN CORREGIDA
+TELEFONO = "584121877291" 
 EXCEL_FILE = "COSTOS (4).xlsx"
 FOTOS_DIR = "assets/productos/"
 
@@ -96,6 +86,7 @@ FOTOS_DIR = "assets/productos/"
 def cargar_datos():
     try:
         df = pd.read_excel(EXCEL_FILE)
+        # Limpieza: quitamos filas donde el nombre del producto esté vacío
         df = df.dropna(subset=[df.columns[1]]) 
         return df
     except:
@@ -104,12 +95,14 @@ def cargar_datos():
 df = cargar_datos()
 
 if not df.empty:
-    st.title("🚀 Catálogo de Productos")
-    st.write("Selecciona un producto para consultar por WhatsApp")
+    st.title("💎 Catálogo Exclusivo Tito")
+    
+    # Buscador centrado
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        search = st.text_input("🔍 ¿Qué buscas hoy?", placeholder="Ej: Nevera, Peinadora...").upper()
 
-    # Buscador con estilo
-    search = st.text_input("🔍 ¿Qué estás buscando hoy?", placeholder="Ej: Nevera, Congelador...").upper()
-
+    # Columnas del Excel (Posiciones)
     col_idx_prod = 1
     col_idx_marca = 2
     col_idx_espec = 3
@@ -131,31 +124,30 @@ if not df.empty:
         foto_path = os.path.join(FOTOS_DIR, f"{id_foto}.jpg")
 
         with cols[i % 3]:
-            # Contenedor de la tarjeta
             st.markdown(f'<div class="product-card">', unsafe_allow_html=True)
             
-            # Imagen
+            # Imagen con bordes redondeados
             if os.path.exists(foto_path):
                 st.image(foto_path, use_container_width=True)
             else:
                 st.image(f"https://via.placeholder.com/400x300/f1f5f9/64748b?text={p_nombre}", use_container_width=True)
 
-            # Información
+            # Contenido de la tarjeta
             st.markdown(f"""
-                <div style="padding-top:10px;">
-                    <h3 style="color:#0f172a; margin-bottom:0;">{p_nombre}</h3>
-                    <p style="color:#64748b; font-size:0.9rem;">Marca: {p_marca}</p>
-                    <p style="color:#475569; font-size:0.85rem; height:40px; overflow:hidden;">{p_espec}</p>
+                <div>
+                    <h3 style="color:#0f172a; margin: 10px 0 5px 0; font-size: 1.4rem;">{p_nombre}</h3>
+                    <p style="color:#64748b; font-weight: 600; margin-bottom: 2px;">Marca: {p_marca}</p>
+                    <p style="color:#475569; font-size: 0.9rem; line-height: 1.2; height: 45px; overflow: hidden;">{p_espec}</p>
                     <div class="price-tag">${p_precio}</div>
                 </div>
             """, unsafe_allow_html=True)
             
-            # Botón de WhatsApp
-            mensaje = f"¡Hola Tito! Me interesa:\n*Producto:* {p_nombre}\n*Precio:* ${p_precio}"
-            link_ws = f"https://wa.me/{TELEFONO}?text={urllib.parse.quote(mensaje)}"
+            # Link de WhatsApp
+            mensaje = f"¡Hola Tito! 👋 Vi esto en tu catálogo y me interesa:\n\n*Producto:* {p_nombre}\n*Precio:* ${p_precio}"
+            link_ws = f"https://wa.me/{58412877291}?text={urllib.parse.quote(Hola tito estoy interesado/a en este producto)}"
             
-            st.markdown(f'<a href="{link_ws}" target="_blank" class="ws-button">Consultar Precio</a>', unsafe_allow_html=True)
+            st.markdown(f'<a href="{link_ws}" target="_blank" class="ws-button">Consultar Ahora</a>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.error("No se pudo cargar el archivo Excel. Revisa el nombre en GitHub.")
+    st.warning("⚠️ Esperando conexión con el inventario o archivo Excel vacío.")
