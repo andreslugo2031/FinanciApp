@@ -1,93 +1,69 @@
-import streamlit as st
-import pandas as pd
-import os
-import urllib.parse
+ import streamlit as st
 
-# Configuración de página
-st.set_page_config(page_title="Catálogo Tito", layout="wide")
+# Configuración de la página
+st.set_page_config(page_title="Mi Catálogo Pro", page_icon="🛍️", layout="wide")
 
-# --- ESTILO LIMPIO Y COMPACTO ---
+# Estilos personalizados para el Modo Oscuro y Botones
 st.markdown("""
     <style>
-    .stApp { background-color: #f8fafc; }
+    .stApp {
+        background-color: #0E1117;
+        color: #FFFFFF;
+    }
     .product-card {
-        background-color: white; border-radius: 12px; padding: 15px;
-        margin-bottom: 20px; border: 1px solid #e2e8f0;
-        text-align: center; height: 100%; display: flex;
-        flex-direction: column; justify-content: space-between;
+        background-color: #262730;
+        padding: 20px;
+        border-radius: 10px;
+        border: 1px solid #464b5d;
+        margin-bottom: 20px;
     }
-    .price-tag { font-size: 1.5rem; font-weight: bold; color: #1e40af; margin: 10px 0; }
-    .ws-button {
-        background-color: #25D366; color: white !important; padding: 10px;
-        border-radius: 8px; text-decoration: none; font-weight: bold; display: block;
+    .whatsapp-button {
+        background-color: #25D366;
+        color: white !important;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        display: inline-block;
+        margin-top: 10px;
     }
-    /* Arregla espacios en blanco en móvil */
-    [data-testid="stVerticalBlock"] > div { padding: 0px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-TELEFONO = "584121877291"
-EXCEL_FILE = "COSTOS (4).xlsx"
-FOTOS_DIR = "assets/productos/"
+st.title("🛍️ Catálogo de Productos")
+st.write("Bienvenido a la versión mejorada de tu tienda.")
 
-@st.cache_data
-def cargar_datos():
-    try:
-        df = pd.read_excel(EXCEL_FILE)
-        # 1. Quitar filas donde el nombre esté vacío
-        df = df.dropna(subset=[df.columns[1]])
-        # 2. Quitar filas donde el precio sea 0 o vacío (Evita el $nan)
-        df = df[df.iloc[:, 5].notna() & (df.iloc[:, 5] != 0)]
-        # 3. ELIMINAR DUPLICADOS (Basado en nombre y marca)
-        df = df.drop_duplicates(subset=[df.columns[1], df.columns[2]])
-        return df
-    except:
-        return pd.DataFrame()
+# --- DATOS DE PRODUCTOS ---
+# Tip: Si usas una URL de imagen de internet, no se borrará nunca.
+productos = [
+    {
+        "nombre": "Producto Ejemplo 1",
+        "precio": "25.00",
+        "imagen": "https://via.placeholder.com/300", # Cambia por ruta local o URL real
+        "descripcion": "Descripción detallada del producto."
+    },
+    {
+        "nombre": "Producto Ejemplo 2",
+        "precio": "40.00",
+        "imagen": "https://via.placeholder.com/300",
+        "descripcion": "Otra descripción interesante."
+    }
+]
 
-df = cargar_datos()
+# --- RENDERIZADO DEL CATÁLOGO ---
+cols = st.columns(2) # Divide en 2 columnas
 
-if not df.empty:
-    st.title("🛍️ Catálogo Tito")
-    
-    search = st.text_input("🔍 Buscar producto...", placeholder="Escribe aquí...").upper()
-
-    if search:
-        mask = df.astype(str).apply(lambda x: x.str.upper().str.contains(search)).any(axis=1)
-        df = df[mask]
-
-    # Grid de 2 columnas para que en móvil no se vea eterno
-    cols = st.columns(2) if st.columns(1) else st.columns(2)
-    
-    # Usamos un contenedor de columnas dinámico
-    for i, (_, row) in enumerate(df.iterrows()):
-        p_nombre = str(row.iloc[1]).strip()
-        p_marca = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
-        p_espec = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else ""
-        p_precio = row.iloc[5]
-
-        id_foto = f"{p_nombre}_{p_marca}".replace(" ", "_")
-        foto_path = os.path.join(FOTOS_DIR, f"{id_foto}.jpg")
-
-        with cols[i % 2]:
-            st.markdown('<div class="product-card">', unsafe_allow_html=True)
-            
-            # Imagen con tamaño controlado
-            if os.path.exists(foto_path):
-                st.image(foto_path, use_container_width=True)
-            else:
-                # Placeholder minimalista si no hay foto
-                st.markdown(f'<div style="background:#f1f5f9;padding:40px;border-radius:10px;color:#94a3b8">Sin Foto</div>', unsafe_allow_html=True)
-
-            st.markdown(f"""
-                <div style="margin-top:10px">
-                    <h4 style="margin:0; color:#1e293b;">{p_nombre}</h4>
-                    <p style="color:#64748b; font-size:0.8rem; margin:5px 0;">{p_marca} | {p_espec}</p>
-                    <div class="price-tag">${p_precio}</div>
-                </div>
+for i, producto in enumerate(productos):
+    with cols[i % 2]:
+        st.markdown(f"""
+            <div class="product-card">
+                <img src="{producto['imagen']}" style="width:100%; border-radius:5px;">
+                <h3>{producto['nombre']}</h3>
+                <p>{producto['descripcion']}</p>
+                <p style="font-size: 20px; font-weight: bold;">${producto['precio']}</p>
+                <a href="https://wa.me/58411877291-+?text=Hola,%20me%20interesa%20el%20producto:%20{producto['nombre']}" 
+                   target="_blank" class="whatsapp-button">
+                   Chat en WhatsApp 💬
+                </a>
+            </div>
             """, unsafe_allow_html=True)
-            
-            link_ws = f"https://wa.me/{TELEFONO}?text=Hola Tito, me interesa: {p_nombre}"
-            st.markdown(f'<a href="{link_ws}" class="ws-button">Consultar</a>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-else:
-    st.error("Revisa tu archivo Excel: parece que hay precios vacíos o nombres repetidos.")
