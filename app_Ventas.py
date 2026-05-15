@@ -11,7 +11,7 @@ st.markdown("""
     <style>
     .stApp { background-color: #f8fafc; }
     .product-card {
-        background-color: white; border-radius: 12px; padding: 15px;
+        background-color: black; border-radius: 12px; padding: 15px;
         margin-bottom: 20px; border: 1px solid #e2e8f0;
         text-align: center; height: 100%; display: flex;
         flex-direction: column; justify-content: space-between;
