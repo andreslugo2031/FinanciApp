@@ -10,7 +10,6 @@ TELEFONO = "584121877291"
 EXCEL_FILE = "COSTOS (4).xlsx"
 FOTOS_DIR = "assets/productos/"
 
-# Asegurar que la carpeta de fotos exista para que no de error al guardar
 if not os.path.exists(FOTOS_DIR):
     os.makedirs(FOTOS_DIR)
 
@@ -35,6 +34,127 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+def cargar_datos():
+    try:
+        df = pd.read_excel(EXCEL_FILE)
+        if 'FOTO' not in df.columns:
+            df['FOTO'] = None
+        return df
+    except Exception as e:
+        st.error(f"Error al leer el archivo Excel: {e}")
+        return pd.DataFrame()
+
+df_original = cargar_datos()
+
+if not df_original.empty:
+    # Limpieza de datos para el catálogo
+    df_catalogo = df_original.dropna(subset=[df_original.columns[1]]).copy()
+    df_catalogo = df_catalogo[df_catalogo.iloc[:, 5].notna() & (df_catalogo.iloc[:, 5] != 0)]
+    df_catalogo = df_catalogo.drop_duplicates(subset=[df_catalogo.columns[1], df_catalogo.columns[2]])
+    
+    st.title("🛍️ Catálogo Tito")
+
+    # ==========================================
+    # 🛠️ PANEL DE ADMINISTRACIÓN
+    # ==========================================
+    with st.sidebar.expander("⚙️ Panel de Administrador (Subir Fotos)", expanded=False):
+        st.write("Selecciona un producto para asignarle una foto:")
+        lista_productos = df_catalogo.apply(lambda r: f"{r.iloc[1]} ({r.iloc[2]})" if pd.notna(r.iloc[2]) else f"{r.iloc[1]}", axis=1).tolist()
+        producto_seleccionado = st.selectbox("Buscar Producto", lista_productos)
+        
+        idx_match = df_catalogo.index[lista_productos.index(producto_seleccionado)]
+        p_nombre_sel = df_original.loc[idx_match].iloc[1]
+        p_marca_sel = df_original.loc[idx_match].iloc[2] if pd.notna(df_original.loc[idx_match].iloc[2]) else ""
+        
+        foto_subida = st.file_uploader("Elige una imagen (JPG/PNG)", type=["jpg", "jpeg", "png"])
+        
+        if foto_subida is not None:
+            ext = os.path.splitext(foto_subida.name)[1]
+            nombre_foto_limpio = f"{p_nombre_sel}_{p_marca_sel}".replace(" ", "_").replace("/", "-") + ext
+            ruta_guardado = os.path.join(FOTOS_DIR, nombre_foto_limpio)
+            
+            with open(ruta_guardado, "wb") as f:
+                f.write(foto_subida.getbuffer())
+                
+            df_original.at[idx_match, 'FOTO'] = ruta_guardado
+            try:
+                df_original.to_excel(EXCEL_FILE, index=False)
+                st.success("¡Foto vinculada con éxito!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Cierra el archivo Excel antes de subir la foto. Error: {e}")
+
+    # ==========================================
+    # 🔍 BUSCADOR GENERAL
+    # ==========================================
+    search = st.text_input("🔍 Buscar producto en todo el catálogo...", placeholder="Escribe aquí...").upper()
+
+    if search:
+        mask = df_catalogo.astype(str).apply(lambda x: x.str.upper().str.contains(search)).any(axis=1)
+        df_catalogo = df_catalogo[mask]
+
+    # ==========================================
+    # 🗂️ SEPARACIÓN DINÁMICA POR CATEGORÍAS
+    # ==========================================
+    # Usaremos la columna 2 (índice 2, que es la marca) como categoría por defecto. 
+    # Tip: Si creas una columna llamada "CATEGORIA" en tu Excel, puedes cambiar row.iloc[2] por row['CATEGORIA']
+    columna_categoria = df_catalogo.columns[2] 
+    
+    # Obtenemos las categorías únicas, quitando vacíos y ordenándolas
+    categorias = df_catalogo[columna_categoria].dropna().unique().tolist()
+    categorias = [str(cat).strip() for cat in categorias if str(cat).strip() != ""]
+    
+    # Añadimos una opción para ver "Todos" al inicio si el usuario prefiere
+    categorias.insert(0, "Todos los Productos")
+
+    if categorias:
+        # Creamos las pestañas dinámicamente en la interfaz
+        pestanas = st.tabs(categorias)
+        
+        # Iteramos sobre cada pestaña construida
+        for idx, nombre_pestana in enumerate(categorias):
+            with pestanas[idx]:
+                # Filtrar el catálogo según la pestaña activa
+                if nombre_pestana == "Todos los Productos":
+                    df_filtrado = df_catalogo
+                else:
+                    df_filtrado = df_catalogo[df_catalogo[columna_categoria].astype(str).str.strip() == nombre_pestana]
+                
+                if df_filtrado.empty:
+                    st.info("No hay productos en esta categoría.")
+                    continue
+                
+                # Renderizar los productos en un grid de 2 columnas dentro de esta pestaña
+                cols = st.columns(2)
+                for j, (_, row) in enumerate(df_filtrado.iterrows()):
+                    p_nombre = str(row.iloc[1]).strip()
+                    p_marca = str(row.iloc[2]).strip() if pd.notna(row.iloc[2]) else ""
+                    p_espec = str(row.iloc[3]).strip() if pd.notna(row.iloc[3]) else ""
+                    p_precio = row.iloc[5]
+                    p_foto = row['FOTO'] if pd.notna(row['FOTO']) else None
+
+                    mensaje_ws = urllib.parse.quote(f"Hola Tito, me interesa el producto: {p_nombre} ({p_marca})")
+                    link_ws = f"https://wa.me/{TELEFONO}?text={mensaje_ws}"
+
+                    with cols[j % 2]:
+                        with st.container(border=True):
+                            if p_foto and os.path.exists(str(p_foto)):
+                                st.image(str(p_foto), use_container_width=True)
+                            else:
+                                st.markdown('<div style="background:#f1f5f9;padding:40px;border-radius:10px;color:#94a3b8;text-align:center;">Sin Foto</div>', unsafe_allow_html=True)
+                            
+                            st.markdown(f"""
+                                <div class="product-card" style="border:none; padding:0; margin:0;">
+                                    <div style="margin-top:10px">
+                                        <h4 style="margin:0; color:#1e293b; font-size:1.1rem;">{p_nombre}</h4>
+                                        <p style="color:#64748b; font-size:0.8rem; margin:5px 0;">{p_marca} | {p_espec}</p>
+                                        <div class="price-tag">${p_precio:,.2f}</div>
+                                    </div>
+                                    <a href="{link_ws}" target="_blank" class="ws-button">Consultar</a>
+                                </div>
+                            """, unsafe_allow_html=True)
+else:
+    st.error("Error al cargar el catálogo.")
 
 def cargar_datos():
     try:
